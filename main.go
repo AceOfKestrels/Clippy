@@ -51,6 +51,7 @@ func onReady() {
 	go func() {
 		<-mQuit.ClickedCh
 		systray.Quit()
+		os.Exit(0)
 	}()
 }
 
