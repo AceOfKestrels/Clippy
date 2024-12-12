@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-const promptMultipleCoice string = "Welche Antwort ist die richtige? Gib nur die richtige Zahl bzw den richtigen Buchstaben.\n\n"
+const promptMultipleChoice string = "Welche Antwort ist die richtige? Gib nur die richtige Zahl bzw den richtigen Buchstaben.\n\n"
 const promptOpen string = "Beantworte die folgende Frage in einem kurzen Stichpunkt.\n\n"
 
 func New(question string) string {
 	var prompt string
 	if isMultipleChoice(question) {
-		prompt = promptMultipleCoice + question
+		prompt = promptMultipleChoice + question
 	} else {
 		prompt = promptOpen + question
 	}

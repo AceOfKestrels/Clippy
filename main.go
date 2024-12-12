@@ -12,11 +12,9 @@ func main() {
 
 	err := config.LoadConfig()
 	if err != nil {
-		clippy.DisplayNotification("Error", err.Error())
+		clippy.HandleError(err)
 		return
 	}
-
-	clippy.DisplayNotification("Info", "Copy a question, then press F8 to ask Clippy!")
 
 	go clippy.ListenForHotkey()
 
