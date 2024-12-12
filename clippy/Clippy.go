@@ -19,8 +19,12 @@ import (
 
 const f8Key = 119
 
+var url string
+
 func Run() {
-	displayNotification("Hello", "Copy a question, then press F8 to ask Clippy!")
+	url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent?key=%v", config.ConfigFile.Model, config.ConfigFile.ApiKey)
+
+	displayNotification("Welcome", "Copy a question, then press F8 to ask Clippy!\n\nUsing model: "+config.ConfigFile.Model)
 	systray.Run(onReady, onExit)
 }
 
@@ -76,7 +80,6 @@ func handleClipboard() {
 
 	displayNotification("Thinking...", "Please give me a moment.")
 
-	url := "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + config.ApiKey
 	resp, err := http.Post(url, "application/json", bytes.NewBufferString(promptStr))
 	if err != nil {
 		HandleError(err)
