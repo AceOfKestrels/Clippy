@@ -5,7 +5,6 @@ import (
 	"clippy/config"
 	"clippy/prompt"
 	"clippy/response"
-	"fmt"
 	"github.com/atotto/clipboard"
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
@@ -25,10 +24,7 @@ func Quit() {
 }
 
 func onReady() {
-	icon, err := getIcon("icon.ico")
-	if err == nil {
-		systray.SetIcon(icon)
-	}
+	systray.SetIcon(icon)
 	systray.SetTitle("Clippy")
 	systray.SetTooltip("Clippy")
 
@@ -42,14 +38,6 @@ func onReady() {
 
 func onExit() {
 	log.Println("Exiting application")
-}
-
-func getIcon(filePath string) ([]byte, error) {
-	icon, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read icon file: %w", err)
-	}
-	return icon, nil
 }
 
 func ListenForHotkey() {
