@@ -96,7 +96,12 @@ func handleClipboard() {
 		HandleError(err)
 	}
 
-	displayNotification("Clippy says:", r.Candidates[0].Content.Parts[0].Text)
+	responseText := r.Candidates[0].Content.Parts[0].Text
+	displayNotification("Clippy says:", responseText)
+	err = clipboard.WriteAll(responseText)
+	if err != nil {
+		HandleError(err)
+	}
 }
 
 func HandleError(err error) {
