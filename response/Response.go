@@ -2,7 +2,7 @@ package response
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -27,7 +27,7 @@ type Response struct {
 func Deserialize(resp *http.Response) (Response, error) {
 	var response Response
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return response, err
 	}
