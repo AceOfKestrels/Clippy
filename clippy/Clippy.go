@@ -5,21 +5,27 @@ import (
 	"clippy/config"
 	"clippy/prompt"
 	"clippy/response"
+	"fmt"
 	"github.com/atotto/clipboard"
 	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
 	"github.com/kindlyfire/go-keylogger"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
+const f8Key = 119
+
 func Run() {
+	displayNotification("Hello", "Copy a question, then press F8 to ask Clippy!")
 	systray.Run(onReady, onExit)
 }
 
 func Quit() {
+	displayNotification("Goodbye", "Thank you for using Clippy")
 	systray.Quit()
 }
 
@@ -51,8 +57,7 @@ func ListenForHotkey() {
 			continue
 		}
 
-		if key.Keycode == 119 {
-			log.Printf("Asking gemini...")
+		if key.Keycode == f8Key {
 			handleClipboard()
 		}
 	}
@@ -61,34 +66,45 @@ func ListenForHotkey() {
 func handleClipboard() {
 	content, err := clipboard.ReadAll()
 	if err != nil {
-		log.Printf("Clipboard error: %v", err)
+		HandleError(err)
 		return
 	}
 
+	log.Printf("Asking gemini...")
+
 	promptStr := prompt.New(content)
+
+	displayNotification("Thinking...", "Please give me a moment.")
 
 	url := "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + config.ApiKey
 	resp, err := http.Post(url, "application/json", bytes.NewBufferString(promptStr))
 	if err != nil {
-		log.Printf("API error: %v", err)
+		HandleError(err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		DisplayNotification("error", "api response does not indicate success: "+resp.Status)
+		HandleError(fmt.Errorf("api response does not indicate success: %v", resp.Status))
 		return
 	}
 
 	r, err := response.Deserialize(resp)
 	if err != nil {
-		log.Printf("API error: %v", err)
+		HandleError(err)
 	}
 
-	DisplayNotification("Clippy says:", r.Candidates[0].Content.Parts[0].Text)
+	displayNotification("Clippy says:", r.Candidates[0].Content.Parts[0].Text)
 }
 
-func DisplayNotification(title, message string) {
+func HandleError(err error) {
+	log.Println(err)
+	displayNotification("Error", err.Error())
+}
+
+func displayNotification(title, message string) {
 	err := beeep.Notify(title, message, "")
 	if err != nil {
 		log.Printf("Error showing notification: %v", err)

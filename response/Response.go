@@ -12,16 +12,8 @@ type Response struct {
 			Parts []struct {
 				Text string `json:"text"`
 			} `json:"parts"`
-			Role string `json:"role"`
 		} `json:"content"`
-		FinishReason string `json:"finishReason"`
 	} `json:"candidates"`
-	UsageMetadata struct {
-		PromptTokenCount     int `json:"promptTokenCount"`
-		CandidatesTokenCount int `json:"candidatesTokenCount"`
-		TotalTokenCount      int `json:"totalTokenCount"`
-	} `json:"usageMetadata"`
-	ModelVersion string `json:"modelVersion"`
 }
 
 func Deserialize(resp *http.Response) (Response, error) {
