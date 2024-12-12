@@ -8,16 +8,14 @@ import (
 )
 
 func main() {
-	go clippy.Run()
-
 	err := config.LoadConfig()
 	if err != nil {
 		clippy.HandleError(err)
 		return
 	}
 
+	go clippy.Run()
 	go clippy.ListenForHotkey()
-
 	waitForExitSignal()
 }
 
