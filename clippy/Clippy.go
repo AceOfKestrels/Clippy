@@ -2,6 +2,9 @@ package clippy
 
 import (
 	"bytes"
+	"clippy/clippy/errors/contextCanceledError"
+	"clippy/clippy/errors/deadlineExceededError"
+	"clippy/clippy/icon"
 	"clippy/config"
 	"clippy/prompt"
 	"clippy/response"
@@ -15,9 +18,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
+
+const AppName = "Clippy"
 
 const f8Key = 119
 
@@ -26,9 +30,9 @@ var url string
 var cancelLastRequest context.CancelFunc
 
 func Run() {
-	url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent?key=%v", config.ConfigFile.Model, config.ConfigFile.ApiKey)
+	url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent?key=%v", config.Config.Model, config.Config.ApiKey)
 
-	displayNotification("Welcome", "Copy a question, then press F8 to ask Clippy!\n\nUsing model: "+config.ConfigFile.Model, false)
+	displayNotification("Welcome", "Copy a question, then press F8 to ask Clippy!\n\nUsing model: "+config.Config.Model, false)
 	systray.Run(onReady, onExit)
 }
 
@@ -44,9 +48,9 @@ func Quit() {
 }
 
 func onReady() {
-	systray.SetIcon(icon)
-	systray.SetTitle("Clippy")
-	systray.SetTooltip("Clippy")
+	systray.SetIcon(icon.Icon)
+	systray.SetTitle(AppName)
+	systray.SetTooltip(AppName)
 
 	mQuit := systray.AddMenuItem("Quit", "Quit the app")
 	go func() {
@@ -76,7 +80,7 @@ func ListenForHotkey() {
 				cancelLastRequest()
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.ConfigFile.Timeout)*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.Config.Timeout)*time.Millisecond)
 			cancelLastRequest = cancel
 			go handleClipboard(ctx)
 		}
@@ -105,9 +109,9 @@ func handleClipboard(ctx context.Context) {
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
-		if strings.Contains(err.Error(), "context deadline exceeded") {
+		if deadlineExceededError.Is(err) {
 			HandleError(fmt.Errorf("no response within timeout"))
-		} else if !strings.Contains(err.Error(), "context canceled") {
+		} else if !contextCanceledError.Is(err) {
 			HandleError(err)
 		}
 	}
@@ -144,12 +148,12 @@ func HandleError(err error) {
 }
 
 func displayNotification(title, message string, ignoreMinimal bool, actions ...toast.Action) {
-	if config.ConfigFile.Minimal && !ignoreMinimal {
+	if config.Config.Minimal && !ignoreMinimal {
 		return
 	}
 
 	notification := toast.Notification{
-		AppID:   "Clippy",
+		AppID:   AppName,
 		Title:   title,
 		Message: message,
 		Actions: actions,

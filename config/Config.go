@@ -7,20 +7,20 @@ import (
 	"os"
 )
 
-var ConfigFile Config
+var Config config
 
 const fileName = "config.json"
 const defaultModel = "gemini-1.5-flash-latest"
 const defaultTimeout = 10000
 
-type Config struct {
+type config struct {
 	ApiKey  string `json:"apiKey"`
 	Model   string `json:"model"`
 	Timeout int    `json:"requestTimeout"`
 	Minimal bool   `json:"minimalNotifications"`
 }
 
-func LoadConfig() error {
+func Load() error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		if err = saveDefaultConfig(); err != nil {
 			return err
@@ -33,7 +33,7 @@ func LoadConfig() error {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}
 
-	var configFile Config
+	var configFile config
 	err = json.Unmarshal(data, &configFile)
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %v", err)
@@ -51,12 +51,12 @@ func LoadConfig() error {
 		configFile.Timeout = defaultTimeout
 	}
 
-	ConfigFile = configFile
+	Config = configFile
 	return nil
 }
 
 func saveDefaultConfig() error {
-	defaultConfig := Config{
+	defaultConfig := config{
 		ApiKey:  "your-api-key-here",
 		Model:   defaultModel,
 		Timeout: defaultTimeout,
@@ -73,6 +73,6 @@ func saveDefaultConfig() error {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 
-	log.Println("Config saved.")
+	log.Println("config saved.")
 	return nil
 }
