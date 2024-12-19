@@ -7,8 +7,8 @@ import (
 	"clippy/response"
 	"fmt"
 	"github.com/atotto/clipboard"
-	"github.com/gen2brain/beeep"
 	"github.com/getlantern/systray"
+	"github.com/go-toast/toast"
 	"github.com/kindlyfire/go-keylogger"
 	"io"
 	"log"
@@ -29,7 +29,12 @@ func Run() {
 }
 
 func Quit() {
-	displayNotification("Goodbye", "Thank you for using Clippy")
+	displayNotification(
+		"Goodbye",
+		"Thank you for using Clippy",
+		toast.Action{Type: "protocol", Label: "Github Source", Arguments: "https://github.com/AceOfKestrels/Clippy"},
+		toast.Action{Type: "protocol", Label: "Report a bug", Arguments: "https://github.com/AceOfKestrels/Clippy/issues"},
+	)
 	systray.Quit()
 }
 
@@ -112,8 +117,15 @@ func HandleError(err error) {
 	displayNotification("Error", err.Error())
 }
 
-func displayNotification(title, message string) {
-	err := beeep.Notify(title, message, "")
+func displayNotification(title, message string, actions ...toast.Action) {
+	notification := toast.Notification{
+		AppID:   "Clippy",
+		Title:   title,
+		Message: message,
+		Actions: actions,
+	}
+
+	err := notification.Push()
 	if err != nil {
 		log.Printf("Error showing notification: %v", err)
 	}
