@@ -5,6 +5,7 @@ import (
 	"clippy/config"
 	"clippy/prompt"
 	"clippy/response"
+	"context"
 	"fmt"
 	"github.com/atotto/clipboard"
 	"github.com/getlantern/systray"
@@ -14,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -21,10 +23,12 @@ const f8Key = 119
 
 var url string
 
+var cancelLastRequest context.CancelFunc
+
 func Run() {
 	url = fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%v:generateContent?key=%v", config.ConfigFile.Model, config.ConfigFile.ApiKey)
 
-	displayNotification("Welcome", "Copy a question, then press F8 to ask Clippy!\n\nUsing model: "+config.ConfigFile.Model)
+	displayNotification("Welcome", "Copy a question, then press F8 to ask Clippy!\n\nUsing model: "+config.ConfigFile.Model, false)
 	systray.Run(onReady, onExit)
 }
 
@@ -32,6 +36,7 @@ func Quit() {
 	displayNotification(
 		"Goodbye",
 		"Thank you for using Clippy",
+		false,
 		toast.Action{Type: "protocol", Label: "Github Source", Arguments: "https://github.com/AceOfKestrels/Clippy"},
 		toast.Action{Type: "protocol", Label: "Report a bug", Arguments: "https://github.com/AceOfKestrels/Clippy/issues"},
 	)
@@ -67,12 +72,18 @@ func ListenForHotkey() {
 		}
 
 		if key.Keycode == f8Key {
-			handleClipboard()
+			if cancelLastRequest != nil {
+				cancelLastRequest()
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.ConfigFile.Timeout)*time.Millisecond)
+			cancelLastRequest = cancel
+			go handleClipboard(ctx)
 		}
 	}
 }
 
-func handleClipboard() {
+func handleClipboard(ctx context.Context) {
 	content, err := clipboard.ReadAll()
 	if err != nil {
 		HandleError(err)
@@ -83,11 +94,24 @@ func handleClipboard() {
 
 	promptStr := prompt.New(content)
 
-	displayNotification("Thinking...", "Please give me a moment.")
+	displayNotification("Thinking...", "Please give me a moment.", false)
 
-	resp, err := http.Post(url, "application/json", bytes.NewBufferString(promptStr))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBufferString(promptStr))
 	if err != nil {
 		HandleError(err)
+		return
+	}
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		if strings.Contains(err.Error(), "context deadline exceeded") {
+			HandleError(fmt.Errorf("no response within timeout"))
+		} else if !strings.Contains(err.Error(), "context canceled") {
+			HandleError(err)
+		}
+	}
+	if resp == nil {
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -96,6 +120,8 @@ func handleClipboard() {
 
 	if resp.StatusCode != http.StatusOK {
 		HandleError(fmt.Errorf("api response does not indicate success: %v", resp.Status))
+		body, _ := io.ReadAll(resp.Body)
+		fmt.Println(string(body))
 		return
 	}
 
@@ -105,7 +131,7 @@ func handleClipboard() {
 	}
 
 	responseText := r.Candidates[0].Content.Parts[0].Text
-	displayNotification("Clippy says:", responseText)
+	displayNotification("Clippy says:", responseText, true)
 	err = clipboard.WriteAll(responseText)
 	if err != nil {
 		HandleError(err)
@@ -114,10 +140,14 @@ func handleClipboard() {
 
 func HandleError(err error) {
 	log.Println(err)
-	displayNotification("Error", err.Error())
+	displayNotification("Error", err.Error(), true)
 }
 
-func displayNotification(title, message string, actions ...toast.Action) {
+func displayNotification(title, message string, ignoreMinimal bool, actions ...toast.Action) {
+	if config.ConfigFile.Minimal && !ignoreMinimal {
+		return
+	}
+
 	notification := toast.Notification{
 		AppID:   "Clippy",
 		Title:   title,

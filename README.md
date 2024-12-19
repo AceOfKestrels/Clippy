@@ -15,3 +15,5 @@ Make sure to add your [Gemini API key](https://aistudio.google.com/app/apikey) t
   - `gemini-1.5-pro-latest`: Much lower rate limits, same speed, but much smarter
   - `gemini-1.5-flash-8b-latest`: Same rate limits, much faster, even less smart
   - `gemini-2.0-flash-exp`: Experimental model, average rate limits and speed, not sure about smartness
+- `requestTimeout`: Timeout duration for the API request in ms. (Default: `10000`)
+- `minimalNotifications`: Disable many notifications, except responses and errors. (Default: `false`)

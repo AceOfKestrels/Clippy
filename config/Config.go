@@ -11,10 +11,13 @@ var ConfigFile Config
 
 const fileName = "config.json"
 const defaultModel = "gemini-1.5-flash-latest"
+const defaultTimeout = 10000
 
 type Config struct {
-	ApiKey string `json:"apiKey"`
-	Model  string `json:"model"`
+	ApiKey  string `json:"apiKey"`
+	Model   string `json:"model"`
+	Timeout int    `json:"requestTimeout"`
+	Minimal bool   `json:"minimalNotifications"`
 }
 
 func LoadConfig() error {
@@ -44,14 +47,20 @@ func LoadConfig() error {
 		configFile.Model = defaultModel
 	}
 
+	if configFile.Timeout <= 0 {
+		configFile.Timeout = defaultTimeout
+	}
+
 	ConfigFile = configFile
 	return nil
 }
 
 func saveDefaultConfig() error {
 	defaultConfig := Config{
-		ApiKey: "your-api-key-here",
-		Model:  defaultModel,
+		ApiKey:  "your-api-key-here",
+		Model:   defaultModel,
+		Timeout: defaultTimeout,
+		Minimal: false,
 	}
 
 	data, err := json.MarshalIndent(defaultConfig, "", "  ")
